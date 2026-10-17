@@ -1,16 +1,14 @@
 package com.spring.ai.lab.rag.services;
 
-import com.spring.ai.lab.rag.chunking.model.Chunk;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.stereotype.Service;
+
 import com.spring.ai.lab.rag.dto.ChatRequest;
 import com.spring.ai.lab.rag.dto.ChatResponse;
 import com.spring.ai.lab.rag.prompt.PromptOrchestrator;
 import com.spring.ai.lab.rag.prompt.model.ChatPrompt;
-import com.spring.ai.lab.rag.retrieval.RetrievalService;
-import com.spring.ai.lab.rag.retrieval.model.RetrievalResult;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor

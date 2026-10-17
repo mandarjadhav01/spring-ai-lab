@@ -1,23 +1,16 @@
 package com.spring.ai.lab.rag.services.ingestion;
 
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.ai.document.Document;
-import org.springframework.ai.reader.pdf.ParagraphPdfDocumentReader;
-import org.springframework.ai.transformer.splitter.TextSplitter;
-import org.springframework.ai.transformer.splitter.TokenTextSplitter;
-import org.springframework.stereotype.Service;
-
-import com.spring.ai.lab.rag.services.ingestion.model.IngestedDocument;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
+import org.springframework.ai.document.Document;
+import org.springframework.ai.reader.pdf.ParagraphPdfDocumentReader;
+import org.springframework.stereotype.Service;
+
+import com.spring.ai.lab.rag.services.ingestion.model.IngestedDocument;
 
 @Service
 public class PdfIngestionService {
