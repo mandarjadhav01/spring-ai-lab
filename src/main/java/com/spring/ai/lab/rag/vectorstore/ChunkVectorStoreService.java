@@ -20,7 +20,7 @@ public class ChunkVectorStoreService {
 
     private final VectorStore vectorStore;
 
-    public ChunkVectorStoreService(@Qualifier("customVectorStore") VectorStore vectorStore) {
+    public ChunkVectorStoreService(VectorStore vectorStore) {
         this.vectorStore = vectorStore;
     }
 

@@ -20,14 +20,6 @@ public class OllamaConfig {
    private final WeatherTools weatherTools;
    private final DateTimeTools dateTimeTools;
 
-   @Value("${spring.ai.ollama.base-url}")
-   private String baseUrl;
-
-   @Value("${spring.ai.ollama.chat.options.model}")
-   private String modelName;
-
-   @Value("${spring.ai.ollama.chat.options.temperature}")
-   private Double temperature;
 
    private static final String STRICT_TOOL_POLICY_SYSTEM_PROMPT = """
          You are a helpful, accurate AI assistant with access to specialized domain tools.

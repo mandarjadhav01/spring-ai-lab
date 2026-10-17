@@ -22,7 +22,7 @@ public class RetrievalService {
     private final VectorStore vectorStore;
     private final ChunkRankingComparator rankingComparator = new ChunkRankingComparator();
 
-    public RetrievalService(@Qualifier("customVectorStore") VectorStore vectorStore) {
+    public RetrievalService(VectorStore vectorStore) {
         this.vectorStore = vectorStore;
     }
 
