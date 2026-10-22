@@ -1,100 +1,67 @@
 package com.spring.ai.lab.rag.retrieval;
 
-import com.spring.ai.lab.rag.chunking.model.Chunk;
-import com.spring.ai.lab.rag.retrieval.model.RetrievalResult;
-
-import lombok.extern.slf4j.Slf4j;
+import com.spring.ai.lab.rag.dto.RetrievalRequest;
+import com.spring.ai.lab.rag.model.RetrievalResult;
+import com.spring.ai.lab.rag.security.TenantContext;
+import lombok.RequiredArgsConstructor;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
-@Slf4j
+@RequiredArgsConstructor
 public class RetrievalService {
 
     private final VectorStore vectorStore;
-    private final ChunkRankingComparator rankingComparator = new ChunkRankingComparator();
 
-    public RetrievalService(VectorStore vectorStore) {
-        this.vectorStore = vectorStore;
-    }
+    public List<RetrievalResult> retrieve(RetrievalRequest request) {
 
-    public RetrievalResult retrieve(String query) {
-        log.info("Retrieval requested for query: {}", query);
+        SearchRequest.Builder builder = SearchRequest.builder()
+                .query(request.getQuery())
+                .topK(3);
 
-        SearchRequest searchRequest = SearchRequest.builder()
-                .query(query)
-                .topK(10)
-                .build();
+        List<String> filters = new ArrayList<>();
 
-        List<Document> documents = vectorStore.similaritySearch(searchRequest);
-
-        log.info("Vector store returned {} documents", documents.size());
-
-        List<Chunk> chunks = documents.stream()
-                .filter(this::isAllowedByMetadata)
-                .map(this::toChunk)
-                .sorted(rankingComparator)
-                .collect(Collectors.toList());
-
-        return new RetrievalResult(chunks);
-    }
-
-    private boolean isAllowedByMetadata(Document document) {
-        Map<String, Object> metadata = document.getMetadata();
-        String source = metadata.get("source").toString();
-
-        if (!"DB".equals(source)) {
-            return true;
+        if(request.getSourceType() != null) {
+            filters.add("sourceType == '" + request.getSourceType() + "'");
         }
-        String table = metadata.get("table").toString();
-        return switch(table) {
-            case "announcements" -> isActiveAnnouncement(metadata);
-            case "faqs" -> isPublicFaq(metadata);
-            case "release_notes" -> true;
-            default -> true;
-        };
-    }
 
-    private boolean isPublicFaq(Map<String, Object> metadata) {
-        return !"RESTRICTED".equals(
-                metadata.get("visibility").toString()
-        );
-    }
-
-    private boolean isActiveAnnouncement(Map<String, Object> metadata) {
-        LocalDate today = LocalDate.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
-
-        String fromDate = metadata.get("effectiveFrom").toString();
-        String tillDate = metadata.get("effectiveTo").toString();
-
-        LocalDate from = LocalDate.parse(fromDate, formatter);
-        LocalDate to = !tillDate.isEmpty() ? LocalDate.parse(tillDate, formatter) : today.plusDays(1);
-
-        return !today.isBefore(from) && !today.isAfter(to);
-    }
-
-
-    private Chunk toChunk(Document document) {
-        String content = document.getText();
-        Map<String,Object> metadata = new HashMap<>(document.getMetadata());
-
-        int chunkIndex = 0;
-        Object chunkIndexValue = metadata.get("chunkIndex");
-        if (chunkIndexValue != null) {
-            chunkIndex = Integer.parseInt(chunkIndexValue.toString());
+        if(request.getEnvironment() != null) {
+            filters.add("environment == '" + request.getEnvironment() + "'");
         }
-        return new Chunk((String) metadata.get("source"),
-                content,
-                metadata,
-                chunkIndex);
+
+        String tenantId = TenantContext.getTenant();
+        if(tenantId != null) {
+            filters.add("tenantId == '" + tenantId + "'");
+        }
+
+        filters.add("containsPii != true");
+
+        if(!filters.isEmpty()) {
+            builder.filterExpression(String.join(" && ", filters));
+        }
+
+        List<Document> documents = vectorStore.similaritySearch(builder.build());
+
+        List<RetrievalResult> results = new ArrayList<>();
+        for(Document document: documents) {
+            RetrievalResult result = new RetrievalResult();
+            result.setContent(document.getText());
+            result.setMetadata(document.getMetadata());
+
+            Object distance = document.getMetadata().get("distance");
+            if(distance instanceof Number number) {
+                result.setScore(number.doubleValue());
+
+                result.setFinalScore(1.0 - result.getScore());
+            }
+            result.setRetrievalType("VECTOR");
+            results.add(result);
+        }
+        return results;
     }
 }

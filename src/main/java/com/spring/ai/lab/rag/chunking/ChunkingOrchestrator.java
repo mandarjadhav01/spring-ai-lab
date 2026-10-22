@@ -1,35 +1,35 @@
 package com.spring.ai.lab.rag.chunking;
 
-import com.spring.ai.lab.rag.chunking.model.Chunk;
-import com.spring.ai.lab.rag.services.ingestion.model.IngestedDocument;
-
+import com.spring.ai.lab.rag.model.KnowledgeChunk;
+import com.spring.ai.lab.rag.model.KnowledgeDocument;
+import com.spring.ai.lab.rag.model.SourceType;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class ChunkingOrchestrator {
 
-    private final WikiSemanticChunker wikiSemanticChunker;
-    private final PdfPragmaticChunker pdfPragmaticChunker;
-    private final DatabaseChunker databaseChunker;
+    private final FixedSizeChunkingService  fixedSizeChunkingService;
+    private final OverlapChunkingService overlapChunkingService;
+    private final SemanticChunkingService  semanticChunkingService;
+    private final DatabaseChunkingService databaseChunkingService;
 
-    public List<Chunk> chunk(IngestedDocument document) throws Exception {
-        return switch (document.getSource()) {
-            case "WIKI" ->
-                    wikiSemanticChunker.chunk(document);
+    public List<KnowledgeChunk> chunkDocument(KnowledgeDocument document) {
 
-            case "PDF" ->
-                    pdfPragmaticChunker.chunk(document);
+        SourceType sourceType = document.getSourceType();
 
-            case "DB" ->
-                    databaseChunker.chunk(document);
+        return switch(sourceType) {
+            case MARKDOWN -> semanticChunkingService.chunkDocument(document);
+            case PDF -> overlapChunkingService.chunkDocument(document);
+            case DATABASE -> databaseChunkingService.chunkDocument(document);
+            case IMAGE -> overlapChunkingService.chunkDocument(document);
 
-            default ->
-                    throw new IllegalArgumentException("Unsupported source type: " + document.getSource());
+            default -> fixedSizeChunkingService.chunkDocument(document);
         };
-
     }
 }
